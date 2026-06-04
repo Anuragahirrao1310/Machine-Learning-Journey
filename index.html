@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>House Price Predictor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 16px;
+      transition: border 0.2s;
+    }
+
+    input:focus {
+      border-color: #4f8ef7;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px;
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #3a7be0; }
+    button:disabled { background: #a0bcf0; cursor: not-allowed; }
+
+    .result {
+      margin-top: 24px;
+      padding: 20px;
+      background: #f0faf5;
+      border: 1.5px solid #b2dfcc;
+      border-radius: 12px;
+      text-align: center;
+      display: none;
+    }
+
+    .result-label {
+      font-size: 13px;
+      color: #2e7d5e;
+      margin-bottom: 6px;
+    }
+
+    .result-price {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1b5e3b;
+    }
+
+    .error {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: #fff0f0;
+      border: 1.5px solid #ffcccc;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #c0392b;
+      display: none;
+    }
+
+    .loading-text {
+      text-align: center;
+      font-size: 13px;
+      color: #888;
+      margin-top: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>House Price Predictor</h1>
+    <p class="subtitle">Powered by your Linear Regression ML model</p>
+
+    <label>House size (sq ft)</label>
+    <input
+      type="number"
+      id="size-input"
+      placeholder="e.g. 1800"
+      min="100"
+      max="10000"
+    />
+
+    <button id="predict-btn" onclick="predictPrice()">
+      Predict Price
+    </button>
+
+    <p class="loading-text" id="loading">Asking your model...</p>
+
+    <div class="result" id="result-box">
+      <p class="result-label">Predicted Price</p>
+      <p class="result-price" id="result-price">₹ 0 Lakh</p>
+    </div>
+
+    <div class="error" id="error-box">
+      <strong>Error:</strong> <span id="error-msg"></span>
+    </div>
+  </div>
+
+  <script>
+    async function predictPrice() {
+      const size = document.getElementById('size-input').value
+
+      // check input is not empty
+      if (!size) {
+        showError("Please enter a house size first!")
+        return
+      }
+
+      // show loading, hide old results
+      document.getElementById('loading').style.display = 'block'
+      document.getElementById('result-box').style.display = 'none'
+      document.getElementById('error-box').style.display = 'none'
+      document.getElementById('predict-btn').disabled = true
+
+      try {
+        // send request to Flask backend
+        const response = await fetch('http://localhost:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ size: parseFloat(size) })
+        })
+
+        const data = await response.json()
+
+        // show result
+        document.getElementById('result-price').textContent = '₹ ' + data.price + ' Lakh'
+        document.getElementById('result-box').style.display = 'block'
+
+      } catch (error) {
+        showError("Cannot connect to Flask. Make sure you ran: python app.py")
+      }
+
+      // hide loading, re-enable button
+      document.getElementById('loading').style.display = 'none'
+      document.getElementById('predict-btn').disabled = false
+    }
+
+    function showError(msg) {
+      document.getElementById('error-msg').textContent = msg
+      document.getElementById('error-box').style.display = 'block'
+      document.getElementById('loading').style.display = 'none'
+      document.getElementById('predict-btn').disabled = false
+    }
+
+    // allow pressing Enter key to predict
+    document.getElementById('size-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') predictPrice()
+    })
+  </script>
+
+</body>
+</html>
